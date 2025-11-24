@@ -276,7 +276,7 @@ async function processScenarios(scenarios) {
     state.jobs = [];
     
     for (const scenario of scenarios) {
-        const scenarioId = `${scenario.device_config}_${scenario.platform_config}_${scenario.region_config}_${scenario.lang_config}`;
+        const scenarioId = `${scenario.device_config}_${scenario.platform_config}_${scenario.proxy_config}_${scenario.lang_config}`;
         
         try {
             updateStatus(`Enviando cenário: ${scenarioId}...`, (completed / total) * 100);

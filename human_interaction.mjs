@@ -221,8 +221,9 @@ export async function detectVSL(page) {
                     count: elements.length
                 });
             }
-        } catch {
-            // Ignora erros de seletores inválidos
+        } catch (error) {
+            // Ignora erros de seletores inválidos (padrões CSS podem não ser válidos em todas as páginas)
+            console.debug(`Seletor VSL ignorado (${pattern}):`, error.message);
         }
     }
     

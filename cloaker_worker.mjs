@@ -260,10 +260,15 @@ async function processJob(job) {
         // Cleanup
         if (browser) await browser.close();
         
-        // Limpar diretório temporário
+        // Limpar diretório temporário de forma segura
         try {
-            if (fs.existsSync(tempDir)) {
-                fs.rmSync(tempDir, { recursive: true, force: true });
+            if (fs.existsSync(tempDir) && tempDir.startsWith('/tmp/cloaker_')) {
+                // Verifica se é realmente um diretório temporário do cloaker
+                const stat = fs.statSync(tempDir);
+                if (stat.isDirectory()) {
+                    fs.rmSync(tempDir, { recursive: true });
+                    console.log(`🧹 Diretório temporário limpo: ${tempDir}`);
+                }
             }
         } catch (cleanupErr) {
             console.warn('⚠️ Erro ao limpar diretório temporário:', cleanupErr.message);
