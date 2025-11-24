@@ -1,0 +1,33 @@
+name: Cloaker Breaker Worker
+
+on:
+  workflow_dispatch: # Permite rodar manualmente pelo botão no GitHub
+  schedule:
+    - cron: '*/5 * * * *' # Roda a cada 5 minutos (limite razoável)
+
+jobs:
+  breaker-process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5 # Evita travar processos
+    
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      # Adicione PROXY_SERVER nos secrets se tiver um proxy pago
+      # PROXY_SERVER: ${{ secrets.PROXY_SERVER }} 
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Install Dependencies
+        run: npm ci
+        
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium
+        
+      - name: Run Cloaker Breaker
+        run: node cloaker_worker.mjs
