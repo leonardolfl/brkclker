@@ -1,0 +1,30 @@
+{
+  "name": "brkclker",
+  "version": "1.0.0",
+  "description": "CloakerBreaker Enterprise - Módulo completo para quebra de cloaker",
+  "type": "module",
+  "main": "cloaker_worker.mjs",
+  "scripts": {
+    "start": "node cloaker_worker.mjs",
+    "test": "node --test test/*.test.mjs",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "cloaker",
+    "breaker",
+    "playwright",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
