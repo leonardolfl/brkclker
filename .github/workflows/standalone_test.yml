@@ -22,6 +22,8 @@ jobs:
   cloaker-test:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -38,7 +40,13 @@ jobs:
 
       - name: Run Standalone Cloaker Test
         run: |
-          node standalone_cloaker.mjs \
-            --url "${{ github.event.inputs.url }}" \
-            --wait ${{ github.event.inputs.wait }} \
-            ${{ github.event.inputs.headful == 'true' && '--headful' || '' }}
+          if [ "${{ github.event.inputs.headful }}" = "true" ]; then
+            xvfb-run --auto-servernum node standalone_cloaker.mjs \
+              --url "${{ github.event.inputs.url }}" \
+              --wait ${{ github.event.inputs.wait }} \
+              --headful
+          else
+            node standalone_cloaker.mjs \
+              --url "${{ github.event.inputs.url }}" \
+              --wait ${{ github.event.inputs.wait }}
+          fi

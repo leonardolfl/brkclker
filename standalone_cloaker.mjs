@@ -23,7 +23,10 @@ function parseArgs() {
             config.url = args[i + 1];
             i++;
         } else if (args[i] === '--wait' && args[i + 1]) {
-            config.wait = parseInt(args[i + 1], 10);
+            const waitValue = parseInt(args[i + 1], 10);
+            if (!isNaN(waitValue) && waitValue > 0) {
+                config.wait = waitValue;
+            }
             i++;
         } else if (args[i] === '--headful') {
             config.headful = true;
