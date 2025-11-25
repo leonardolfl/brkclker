@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloakerBreaker Enterprise</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🛡️ CloakerBreaker</h1>
+      <p class="subtitle">Enterprise Edition</p>
+    </header>
+
+    <main>
+      <!-- URL Input -->
+      <section class="input-section">
+        <label for="targetUrl">URL Alvo:</label>
+        <input 
+          type="url" 
+          id="targetUrl" 
+          placeholder="https://exemplo.com/pagina"
+          required
+        >
+        <button type="button" id="getCurrentUrl" title="Usar URL da aba atual">
+          📋
+        </button>
+      </section>
+
+      <!-- Device Selection -->
+      <section class="config-section">
+        <label>📱 Dispositivo:</label>
+        <div class="checkbox-group" id="deviceGroup">
+          <label><input type="checkbox" name="device" value="android"> Android</label>
+          <label><input type="checkbox" name="device" value="iphone"> iPhone</label>
+          <label><input type="checkbox" name="device" value="ipad"> iPad</label>
+          <label><input type="checkbox" name="device" value="desktop" checked> Desktop</label>
+          <label><input type="checkbox" name="device" value="windows_phone"> Windows Phone</label>
+        </div>
+      </section>
+
+      <!-- Platform Selection -->
+      <section class="config-section">
+        <label>🌐 Plataforma Simulada:</label>
+        <div class="checkbox-group" id="platformGroup">
+          <label><input type="checkbox" name="platform" value="facebook" checked> Facebook</label>
+          <label><input type="checkbox" name="platform" value="google"> Google</label>
+          <label><input type="checkbox" name="platform" value="youtube"> YouTube</label>
+          <label><input type="checkbox" name="platform" value="instagram"> Instagram</label>
+          <label><input type="checkbox" name="platform" value="direct"> Direto</label>
+        </div>
+      </section>
+
+      <!-- Region Selection -->
+      <section class="config-section">
+        <label>🌍 Região/Proxy:</label>
+        <div class="checkbox-group" id="regionGroup">
+          <label><input type="checkbox" name="region" value="br" checked> 🇧🇷 Brasil</label>
+          <label><input type="checkbox" name="region" value="co"> 🇨🇴 Colômbia</label>
+          <label><input type="checkbox" name="region" value="us"> 🇺🇸 EUA</label>
+          <label><input type="checkbox" name="region" value="mx"> 🇲🇽 México</label>
+          <label><input type="checkbox" name="region" value="fr"> 🇫🇷 França</label>
+          <label><input type="checkbox" name="region" value="ca"> 🇨🇦 Canadá</label>
+          <label><input type="checkbox" name="region" value="pt"> 🇵🇹 Portugal</label>
+          <label><input type="checkbox" name="region" value="au-sydney"> 🇦🇺 Austrália</label>
+          <label><input type="checkbox" name="region" value="de"> 🇩🇪 Alemanha</label>
+          <label><input type="checkbox" name="region" value="it"> 🇮🇹 Itália</label>
+        </div>
+      </section>
+
+      <!-- Language Selection -->
+      <section class="config-section">
+        <label>🗣️ Idioma:</label>
+        <div class="checkbox-group" id="languageGroup">
+          <label><input type="checkbox" name="language" value="pt" checked> Português</label>
+          <label><input type="checkbox" name="language" value="en"> English</label>
+          <label><input type="checkbox" name="language" value="es"> Español</label>
+          <label><input type="checkbox" name="language" value="de"> Deutsch</label>
+          <label><input type="checkbox" name="language" value="it"> Italiano</label>
+          <label><input type="checkbox" name="language" value="fr"> Français</label>
+        </div>
+      </section>
+
+      <!-- Scenario Counter -->
+      <section class="scenario-counter">
+        <span id="scenarioCount">1</span> cenário(s) selecionado(s)
+      </section>
+
+      <!-- Action Buttons -->
+      <section class="actions">
+        <button type="button" id="submitBtn" class="primary">
+          🚀 Iniciar Quebra
+        </button>
+        <button type="button" id="selectAllBtn" class="secondary">
+          ✅ Selecionar Todos
+        </button>
+        <button type="button" id="clearAllBtn" class="secondary">
+          ❌ Limpar Seleção
+        </button>
+      </section>
+
+      <!-- Status Area -->
+      <section class="status-area" id="statusArea" style="display: none;">
+        <div class="status-header">
+          <span class="status-icon">⏳</span>
+          <span class="status-text" id="statusText">Processando...</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <ul class="status-list" id="statusList"></ul>
+      </section>
+
+      <!-- Results Area -->
+      <section class="results-area" id="resultsArea" style="display: none;">
+        <h3>📊 Resultados</h3>
+        <div class="results-list" id="resultsList"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>CloakerBreaker Enterprise v1.0</p>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

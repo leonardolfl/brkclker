@@ -1,17 +1,23 @@
-name: Cloaker Breaker Worker
+name: CloakerBreaker Enterprise Worker
 
 on:
   workflow_dispatch: # Permite rodar manualmente pelo botão no GitHub
 
+permissions:
+  contents: read
+
 jobs:
   breaker-process:
     runs-on: ubuntu-latest
-    timeout-minutes: 5 
+    timeout-minutes: 10 # Aumentado para suportar gravação de vídeo VSL
     
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-      # PROXY_SERVER: ${{ secrets.PROXY_SERVER }} 
+      # Proxies por região (formato JSON)
+      PROXY_SERVERS: ${{ secrets.PROXY_SERVERS }}
+      # Fallback para proxy único
+      PROXY_SERVER: ${{ secrets.PROXY_SERVER }}
 
     steps:
       - uses: actions/checkout@v4
@@ -21,11 +27,11 @@ jobs:
           node-version: 20
           
       - name: Install Dependencies
-        # AQUI ESTAVA O ERRO. Mudamos de 'npm ci' para 'npm install'
         run: npm install
         
       - name: Install Playwright Browsers
-        run: npx playwright install chromium
+        run: npx playwright install chromium --with-deps
         
-      - name: Run Cloaker Breaker
+      - name: Run CloakerBreaker Enterprise
         run: node cloaker_worker.mjs
+
