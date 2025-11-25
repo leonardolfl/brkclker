@@ -1,0 +1,13 @@
+{
+  "name": "brkclker",
+  "version": "1.0.0",
+  "description": "Cloaker Breaker - Test cloaker redirects with Playwright",
+  "type": "module",
+  "scripts": {
+    "test:standalone": "node standalone_cloaker.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "playwright": "^1.42.0"
+  }
+}

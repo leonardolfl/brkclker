@@ -1,0 +1,44 @@
+name: Standalone Cloaker Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Target URL to test'
+        required: true
+        type: string
+      wait:
+        description: 'Max wait time for dynamic content (ms)'
+        required: false
+        default: '12000'
+        type: string
+      headful:
+        description: 'Run browser in headful mode (for debug)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  cloaker-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium
+
+      - name: Run Standalone Cloaker Test
+        run: |
+          node standalone_cloaker.mjs \
+            --url "${{ github.event.inputs.url }}" \
+            --wait ${{ github.event.inputs.wait }} \
+            ${{ github.event.inputs.headful == 'true' && '--headful' || '' }}
