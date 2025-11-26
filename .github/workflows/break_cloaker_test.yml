@@ -32,9 +32,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies
+      - name: Install Playwright System Dependencies
         run: |
           npm install playwright
+          npx playwright install-deps
+
+      - name: Install Playwright Chromium
+        run: |
           npx playwright install chromium
 
       - name: Run Break Cloaker Test
@@ -54,6 +58,14 @@ jobs:
 
           node break_cloaker_test.mjs "${URL_INPUT}" ${EXTRA_FLAGS}
 
+      - name: Diagnose Evidence Directory
+        if: always()
+        run: |
+          echo "Listando conteúdo do diretório de trabalho:"
+          ls -la
+          echo "Listando conteúdo de evidence:"
+          ls -la evidence || echo "Diretório evidence não existe"
+
       - name: Upload Evidence Artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -61,7 +73,10 @@ jobs:
           name: cloaker-evidence
           path: evidence
           if-no-files-found: warn
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
 
       - name: Final Status
         run: |
-            echo "Processo concluído. Verifique logs para JSON e artifacts para screenshot."
+          echo "Processo concluído. Verifique logs para JSON e artifacts para screenshot."
