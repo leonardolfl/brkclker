@@ -1,0 +1,67 @@
+name: Break Cloaker Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL alvo para quebrar cloaker (ex: https://exemplo.com)'
+        required: true
+        type: string
+      wait:
+        description: 'Tempo máx de espera dinâmica (ms) por vídeo/iframe (default 12000)'
+        required: false
+        type: string
+        default: '12000'
+      headful:
+        description: 'Rodar com navegador visível (true/false). Default false.'
+        required: false
+        type: string
+        default: 'false'
+
+jobs:
+  run-break:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: |
+          npm install playwright
+          npx playwright install chromium
+
+      - name: Run Break Cloaker Test
+        id: run_test
+        run: |
+          URL_INPUT="${{ github.event.inputs.url }}"
+          WAIT_INPUT="${{ github.event.inputs.wait }}"
+          HEADFUL_INPUT="${{ github.event.inputs.headful }}"
+          echo "URL fornecida: $URL_INPUT"
+          echo "Wait fornecido: $WAIT_INPUT"
+          echo "Headful: $HEADFUL_INPUT"
+
+          EXTRA_FLAGS="--wait=${WAIT_INPUT}"
+          if [ "${HEADFUL_INPUT}" = "true" ]; then
+            EXTRA_FLAGS="${EXTRA_FLAGS} --headful"
+          fi
+
+          node break_cloaker_test.mjs "${URL_INPUT}" ${EXTRA_FLAGS}
+
+      - name: Upload Evidence Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloaker-evidence
+          path: evidence
+          if-no-files-found: warn
+
+      - name: Final Status
+        run: |
+            echo "Processo concluído. Verifique logs para JSON e artifacts para screenshot."
