@@ -1,82 +1,58 @@
-name: Break Cloaker Test
+name: 🛡️ Quebra Cloaker (Manual)
 
 on:
   workflow_dispatch:
     inputs:
-      url:
-        description: 'URL alvo para quebrar cloaker (ex: https://exemplo.com)'
+      target_url:
+        description: 'URL do Cloaker/VSL (com http/https)'
         required: true
         type: string
-      wait:
-        description: 'Tempo máx de espera dinâmica (ms) por vídeo/iframe (default 12000)'
-        required: false
-        type: string
-        default: '12000'
-      headful:
-        description: 'Rodar com navegador visível (true/false). Default false.'
-        required: false
-        type: string
-        default: 'false'
+      device:
+        description: 'Dispositivo'
+        required: true
+        default: 'desktop_win'
+        type: choice
+        options:
+          - desktop_win
+          - desktop_mac
+          - android
+          - iphone
+      country:
+        description: 'Simular País (Proxy)'
+        required: true
+        default: 'us'
+        type: choice
+        options:
+          - us
+          - br
+          - fr
+          - de
 
 jobs:
-  run-break:
+  breaker-direct:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
+    
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      # Passando os inputs do usuário para variáveis de ambiente
+      INPUT_URL: ${{ inputs.target_url }}
+      INPUT_DEVICE: ${{ inputs.device }}
+      INPUT_COUNTRY: ${{ inputs.country }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
-      - name: Install Playwright System Dependencies
-        run: |
-          npm install playwright
-          npx playwright install-deps
-
-      - name: Install Playwright Chromium
-        run: |
-          npx playwright install chromium
-
-      - name: Run Break Cloaker Test
-        id: run_test
-        run: |
-          URL_INPUT="${{ github.event.inputs.url }}"
-          WAIT_INPUT="${{ github.event.inputs.wait }}"
-          HEADFUL_INPUT="${{ github.event.inputs.headful }}"
-          echo "URL fornecida: $URL_INPUT"
-          echo "Wait fornecido: $WAIT_INPUT"
-          echo "Headful: $HEADFUL_INPUT"
-
-          EXTRA_FLAGS="--wait=${WAIT_INPUT}"
-          if [ "${HEADFUL_INPUT}" = "true" ]; then
-            EXTRA_FLAGS="${EXTRA_FLAGS} --headful"
-          fi
-
-          node break_cloaker_test.mjs "${URL_INPUT}" ${EXTRA_FLAGS}
-
-      - name: Diagnose Evidence Directory
-        if: always()
-        run: |
-          echo "Listando conteúdo do diretório de trabalho:"
-          ls -la
-          echo "Listando conteúdo de evidence:"
-          ls -la evidence || echo "Diretório evidence não existe"
-
-      - name: Upload Evidence Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cloaker-evidence
-          path: evidence
-          if-no-files-found: warn
-          compression-level: 6
-          overwrite: false
-          include-hidden-files: false
-
-      - name: Final Status
-        run: |
-          echo "Processo concluído. Verifique logs para JSON e artifacts para screenshot."
+          node-version: 20
+          
+      - name: Instalar Dependências
+        run: npm install
+        
+      - name: Instalar Navegadores
+        run: npx playwright install chromium
+        
+      - name: 🛡️ EXECUTAR QUEBRA CLOAKER
+        run: node cloaker_worker.mjs
