@@ -1,0 +1,14 @@
+{
+  "name": "cloaker-breaker-manual",
+  "version": "1.0.0",
+  "description": "Ferramenta de Quebra de Cloaker via GitHub Actions",
+  "main": "cloaker_worker.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node cloaker_worker.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "playwright": "^1.41.1"
+  }
+}
