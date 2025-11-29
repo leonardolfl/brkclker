@@ -1,73 +1,50 @@
-name: 🛡️ Quebra Cloaker (Pro)
+name: 🛡️ Quebra Cloaker (Proxy Manual)
 
 on:
   workflow_dispatch:
     inputs:
       target_url:
-        description: 'URL Alvo (http/https)'
+        description: 'URL do Cloaker/VSL'
         required: true
         type: string
       device:
         description: 'Dispositivo'
         required: true
-        default: 'android'
+        default: 'desktop_win'
         type: choice
         options:
-          - android
-          - iphone
           - desktop_win
           - desktop_mac
-      referer:
-        description: 'Simular Origem (Referer)'
-        required: true
-        default: 'facebook'
-        type: choice
-        options:
-          - facebook
-          - google
-          - instagram
-          - tiktok
-          - youtube
-          - direct (acesso direto)
-      language:
-        description: 'Idioma do Navegador'
-        required: true
-        default: 'pt-BR'
-        type: choice
-        options:
-          - pt-BR (Português)
-          - en-US (Inglês)
-          - es-ES (Espanhol)
-          - fr-FR (Francês)
-          - it-IT (Italiano)
-          - de-DE (Alemão)
+          - android
+          - iphone
       country:
-        description: 'País (Define Fuso Horário)'
+        description: 'Simular País (Proxy)'
         required: true
-        default: 'br'
+        default: 'us'
         type: choice
         options:
-          - br (Brasil)
-          - us (EUA)
-          - fr (França)
-          - it (Itália)
-          - de (Alemanha)
-          - co (Colômbia)
-          - cl (Chile)
+          - us
+          - br
+          - fr
+          - de
+          - it
+          - co
 
 jobs:
-  breaker-pro:
+  breaker-proxy:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-      # Inputs
+      # Secrets dos Proxies (Opcional: Pode colocar hardcoded no JS se preferir)
+      PROXY_BR: ${{ secrets.PROXY_BR }}
+      PROXY_FR: ${{ secrets.PROXY_FR }}
+      PROXY_DE: ${{ secrets.PROXY_DE }}
+      # Inputs do usuário
       INPUT_URL: ${{ inputs.target_url }}
       INPUT_DEVICE: ${{ inputs.device }}
-      INPUT_REFERER: ${{ inputs.referer }}
-      INPUT_LANGUAGE: ${{ inputs.language }}
       INPUT_COUNTRY: ${{ inputs.country }}
 
     steps:
@@ -83,5 +60,5 @@ jobs:
       - name: Instalar Navegadores
         run: npx playwright install chromium
         
-      - name: 🛡️ EXECUTAR VARREDURA
+      - name: 🛡️ EXECUTAR COM PROXY
         run: node cloaker_worker.mjs
