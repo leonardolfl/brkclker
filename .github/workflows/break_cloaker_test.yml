@@ -1,44 +1,73 @@
-name: 🛡️ Quebra Cloaker (Manual)
+name: 🛡️ Quebra Cloaker (Pro)
 
 on:
   workflow_dispatch:
     inputs:
       target_url:
-        description: 'URL do Cloaker/VSL (com http/https)'
+        description: 'URL Alvo (http/https)'
         required: true
         type: string
       device:
         description: 'Dispositivo'
         required: true
-        default: 'desktop_win'
+        default: 'android'
         type: choice
         options:
-          - desktop_win
-          - desktop_mac
           - android
           - iphone
-      country:
-        description: 'Simular País (Proxy)'
+          - desktop_win
+          - desktop_mac
+      referer:
+        description: 'Simular Origem (Referer)'
         required: true
-        default: 'us'
+        default: 'facebook'
         type: choice
         options:
-          - us
-          - br
-          - fr
-          - de
+          - facebook
+          - google
+          - instagram
+          - tiktok
+          - youtube
+          - direct (acesso direto)
+      language:
+        description: 'Idioma do Navegador'
+        required: true
+        default: 'pt-BR'
+        type: choice
+        options:
+          - pt-BR (Português)
+          - en-US (Inglês)
+          - es-ES (Espanhol)
+          - fr-FR (Francês)
+          - it-IT (Italiano)
+          - de-DE (Alemão)
+      country:
+        description: 'País (Define Fuso Horário)'
+        required: true
+        default: 'br'
+        type: choice
+        options:
+          - br (Brasil)
+          - us (EUA)
+          - fr (França)
+          - it (Itália)
+          - de (Alemanha)
+          - co (Colômbia)
+          - cl (Chile)
 
 jobs:
-  breaker-direct:
+  breaker-pro:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-      # Passando os inputs do usuário para variáveis de ambiente
+      # Inputs
       INPUT_URL: ${{ inputs.target_url }}
       INPUT_DEVICE: ${{ inputs.device }}
+      INPUT_REFERER: ${{ inputs.referer }}
+      INPUT_LANGUAGE: ${{ inputs.language }}
       INPUT_COUNTRY: ${{ inputs.country }}
 
     steps:
@@ -54,5 +83,5 @@ jobs:
       - name: Instalar Navegadores
         run: npx playwright install chromium
         
-      - name: 🛡️ EXECUTAR QUEBRA CLOAKER
+      - name: 🛡️ EXECUTAR VARREDURA
         run: node cloaker_worker.mjs
