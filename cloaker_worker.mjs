@@ -1,112 +1,104 @@
 /**
- * cloaker_worker.mjs (Versão Pro)
- * Suporte a Referer, Idioma e Timezone
+ * cloaker_worker.mjs (Foco em Proxy)
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { chromium, devices } from 'playwright';
 import fs from 'fs';
 
-// --- CONFIGURAÇÃO ---
+// --- CONFIGURAÇÃO BÁSICA ---
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 const TARGET_URL = process.env.INPUT_URL;
-const SEL_DEVICE = process.env.INPUT_DEVICE || 'android';
-const SEL_REFERER = process.env.INPUT_REFERER || 'facebook';
-const SEL_LANG = process.env.INPUT_LANGUAGE || 'pt-BR';
-const SEL_COUNTRY = process.env.INPUT_COUNTRY || 'br';
+const SEL_DEVICE = process.env.INPUT_DEVICE || 'desktop_win';
+const SEL_COUNTRY = process.env.INPUT_COUNTRY || 'us';
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error("❌ ERRO: Configure as Secrets no GitHub.");
+    console.error("❌ ERRO: Secrets do Supabase ausentes.");
     process.exit(1);
 }
 if (!TARGET_URL) {
-    console.error("❌ ERRO: Nenhuma URL fornecida.");
+    console.error("❌ ERRO: URL não informada.");
     process.exit(1);
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- MAPAS DE SIMULAÇÃO ---
-
-const REFERER_MAP = {
-    'facebook': 'https://m.facebook.com/', // Mobile facebook é melhor pra ads
-    'instagram': 'https://www.instagram.com/',
-    'google': 'https://www.google.com/',
-    'youtube': 'https://www.youtube.com/',
-    'tiktok': 'https://www.tiktok.com/',
-    'direct': ''
+// ==============================================================================
+// 🚨 CONFIGURAÇÃO DOS PROXIES
+// Coloque a string de conexão do seu proxy aqui.
+// Formato: 'http://usuario:senha@ip:porta'
+// ==============================================================================
+const PROXY_MAP = {
+    'us': '', // Deixe vazio para usar o IP do GitHub (que já é US)
+    'br': process.env.PROXY_BR || '', // Cole seu proxy BR aqui entre as aspas se não usar secrets
+    'fr': process.env.PROXY_FR || '',
+    'de': process.env.PROXY_DE || '',
+    'it': process.env.PROXY_IT || '',
+    'co': process.env.PROXY_CO || ''
 };
-
-const TIMEZONE_MAP = {
-    'br': 'America/Sao_Paulo',
-    'us': 'America/New_York',
-    'fr': 'Europe/Paris',
-    'it': 'Europe/Rome',
-    'de': 'Europe/Berlin',
-    'co': 'America/Bogota',
-    'cl': 'America/Santiago'
-};
+// ==============================================================================
 
 const DEVICE_MAP = {
     'desktop_win': { 
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
-        viewport: { width: 1920, height: 1080 },
-        hasTouch: false
+        viewport: { width: 1920, height: 1080 }
     },
     'desktop_mac': { 
         userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 
-        viewport: { width: 1440, height: 900 },
-        hasTouch: false
+        viewport: { width: 1440, height: 900 }
     },
     'android': devices['Galaxy S9+'],
     'iphone': devices['iPhone 14 Pro'],
 };
 
 async function run() {
+    // 1. Identificar Proxy
+    const proxyUrl = PROXY_MAP[SEL_COUNTRY];
+    
     console.log(`\n========================================`);
-    console.log(`🛡️ INICIANDO QUEBRA CLOAKER (PRO)`);
+    console.log(`🛡️ QUEBRA CLOAKER (PROXY MODE)`);
     console.log(`🎯 Alvo: ${TARGET_URL}`);
-    console.log(`📱 Config: ${SEL_DEVICE} | ${SEL_LANG} | ${SEL_COUNTRY.toUpperCase()}`);
-    console.log(`🔗 Origem Simulada: ${SEL_REFERER}`);
+    console.log(`🌍 País Selecionado: ${SEL_COUNTRY.toUpperCase()}`);
+    console.log(`🔌 Proxy: ${proxyUrl ? '✅ CONFIGURADO' : (SEL_COUNTRY === 'us' ? '✅ US (Nativo)' : '❌ NÃO CONFIGURADO (Usando US)')}`);
     console.log(`========================================\n`);
 
     let browser = null;
 
     try {
-        const deviceConfig = DEVICE_MAP[SEL_DEVICE] || DEVICE_MAP['android'];
-        const refererUrl = REFERER_MAP[SEL_REFERER];
-        const timezone = TIMEZONE_MAP[SEL_COUNTRY] || 'America/New_York';
-
+        const deviceConfig = DEVICE_MAP[SEL_DEVICE];
+        
+        // 2. Configurar Launch Options com Proxy
         const launchOptions = { headless: true };
+        
+        if (proxyUrl) {
+            launchOptions.proxy = { server: proxyUrl };
+        }
+
         browser = await chromium.launch(launchOptions);
         
-        // Contexto com Locale e Timezone corretos (Isso engana muitos cloakers)
+        // 3. Criar Contexto (Sem Timezone, apenas UserAgent e Viewport)
         const context = await browser.newContext({
             ...deviceConfig,
-            locale: SEL_LANG,
-            timezoneId: timezone,
-            extraHTTPHeaders: refererUrl ? { 'Referer': refererUrl } : {}
+            locale: SEL_COUNTRY === 'br' ? 'pt-BR' : 'en-US' // Ajuste básico de idioma
         });
 
         const page = await context.newPage();
 
         console.log(`🚀 Acessando URL...`);
+        // Timeout de 60s
+        await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
         
-        // Timeout longo pois cloakers as vezes demoram
-        const response = await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        
-        console.log("⏳ Aguardando scripts de redirecionamento (8s)...");
+        console.log("⏳ Aguardando carregamento (8s)...");
         await page.waitForTimeout(8000);
 
         const finalUrl = page.url();
-        const title = await page.title();
         console.log(`📍 URL Final: ${finalUrl}`);
 
         console.log("📸 Tirando Print...");
         const screenshotBuffer = await page.screenshot({ fullPage: false });
-        const fileName = `pro_${Date.now()}.png`;
+        const fileName = `proxy_${Date.now()}.png`;
 
         console.log("☁️ Uploading...");
         const { error } = await supabase
@@ -127,34 +119,31 @@ async function run() {
         const publicLink = publicUrlData.publicUrl;
 
         console.log(`\n✅ SUCESSO!`);
-        console.log(`🔗 URL: ${publicLink.replace('https://', 'https:// ')}`); 
+        console.log(`🔗 LINK: ${publicLink.replace('https://', 'https:// ')}`); 
 
-        // --- RESUMO VISUAL NO GITHUB ---
+        // --- RELATÓRIO NO GITHUB ---
         if (process.env.GITHUB_STEP_SUMMARY) {
-            const wasRedirected = TARGET_URL.replace(/\/$/, '') !== finalUrl.replace(/\/$/, '');
             const summaryContent = `
-### 🛡️ Relatório de Análise
+### 🛡️ Resultado (Modo Proxy)
 
-| Parâmetro | Valor |
+| Config | Valor |
 | :--- | :--- |
-| **URL Entrada** | \`${TARGET_URL}\` |
-| **URL Destino** | \`${finalUrl}\` |
-| **Redirect Detectado** | ${wasRedirected ? '🚨 SIM' : '⚪ Não (Página Segura?)'} |
-| **Simulação** | ${SEL_DEVICE} / ${SEL_LANG} / ${SEL_COUNTRY.toUpperCase()} |
-| **Origem** | ${SEL_REFERER} |
+| **País** | ${SEL_COUNTRY.toUpperCase()} |
+| **Proxy Usado** | ${proxyUrl ? '✅ Sim' : '⚠️ Não (IP Datacenter)'} |
+| **Device** | ${SEL_DEVICE} |
+| **URL Final** | \`${finalUrl}\` |
 
-#### 📸 Evidência Visual
-[**🔗 ABRIR IMAGEM ORIGINAL**](${publicLink})
+[**🔗 ABRIR IMAGEM**](${publicLink})
 
 <a href="${publicLink}" target="_blank">
-  <img src="${publicLink}" width="600" style="border: 2px solid #333; border-radius: 8px;" />
+  <img src="${publicLink}" width="600" style="border: 2px solid #ccc; border-radius: 8px;" />
 </a>
 `;
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryContent);
         }
 
     } catch (err) {
-        console.error(`\n❌ FALHA FATAL:`, err);
+        console.error(`\n❌ FALHA:`, err);
         process.exit(1);
     } finally {
         if (browser) await browser.close();
