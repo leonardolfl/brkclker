@@ -1,5 +1,5 @@
 /**
- * cloaker_worker.mjs (Versão Completa: Proxy + Referer + Lang)
+ * cloaker_worker.mjs (Modo Resiliente: Tenta múltiplos proxies até conseguir)
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -27,19 +27,33 @@ if (!TARGET_URL) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// --- MAPAS DE CONFIGURAÇÃO ---
+// --- FUNÇÃO PARA PEGAR LISTA DE PROXIES ---
+async function getProxyList(countryCode) {
+    if (countryCode === 'us') return []; // US usa o nativo
 
-// 1. Proxies (Configure aqui ou use Secrets)
-const PROXY_MAP = {
-    'us': '', // Vazio = IP do GitHub
-    'br': process.env.PROXY_BR || '', // Ex: 'http://user:pass@br.proxy.com:port'
-    'fr': process.env.PROXY_FR || '',
-    'de': process.env.PROXY_DE || '',
-    'it': process.env.PROXY_IT || '',
-    'co': process.env.PROXY_CO || ''
-};
+    console.log(`🌍 Baixando lista de proxies para: ${countryCode.toUpperCase()}...`);
+    
+    try {
+        // Pede 15 proxies HTTPS ordenados por uptime (estabilidade)
+        // Fontes: Geonode, PubProxy, Proxyscrape (vamos usar geonode que retorna JSON limpo)
+        const apiUrl = `https://proxylist.geonode.com/api/proxy-list?limit=15&page=1&sort_by=lastChecked&sort_type=desc&country=${countryCode.toUpperCase()}&protocols=http%2Chttps`;
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
 
-// 2. Referers (Origens Simuladas)
+        if (data && data.data && data.data.length > 0) {
+            return data.data.map(p => `http://${p.ip}:${p.port}`);
+        } else {
+            console.log(`⚠️ Nenhum proxy encontrado para ${countryCode}.`);
+            return [];
+        }
+    } catch (e) {
+        console.error(`⚠️ Erro na API de proxies: ${e.message}`);
+        return [];
+    }
+}
+
+// --- MAPAS ---
 const REFERER_MAP = {
     'facebook': 'https://m.facebook.com/', 
     'instagram': 'https://www.instagram.com/',
@@ -62,44 +76,95 @@ const DEVICE_MAP = {
     'iphone': devices['iPhone 14 Pro'],
 };
 
+async function attemptNavigation(browser, url, proxy, deviceConfig, refererUrl, lang) {
+    let context = null;
+    try {
+        const options = {
+            ...deviceConfig,
+            locale: lang,
+            ignoreHTTPSErrors: true
+        };
+
+        if (refererUrl) options.extraHTTPHeaders = { 'Referer': refererUrl };
+        
+        // Se tiver proxy, adiciona
+        if (proxy) {
+            // Nota: Proxies grátis raramente tem user/pass, é só IP:Porta
+            options.proxy = { server: proxy };
+        }
+
+        context = await browser.newContext(options);
+        const page = await context.newPage();
+
+        // Timeout agressivo (20s). Se o proxy for lento demais, pula pro próximo.
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        
+        // Se chegou aqui, carregou!
+        return { success: true, page, context, usedProxy: proxy };
+
+    } catch (e) {
+        if (context) await context.close();
+        return { success: false, error: e.message };
+    }
+}
+
 async function run() {
-    const proxyUrl = PROXY_MAP[SEL_COUNTRY];
-    const refererUrl = REFERER_MAP[SEL_REFERER];
-    
     console.log(`\n========================================`);
-    console.log(`🛡️ QUEBRA CLOAKER (FULL)`);
+    console.log(`🛡️ QUEBRA CLOAKER (MODO METRALHADORA)`);
     console.log(`🎯 Alvo: ${TARGET_URL}`);
-    console.log(`🌍 País: ${SEL_COUNTRY.toUpperCase()} | Proxy: ${proxyUrl ? '✅ SIM' : '❌ NÃO'}`);
-    console.log(`🗣️ Idioma: ${SEL_LANG}`);
-    console.log(`🔗 Origem: ${SEL_REFERER}`);
+    console.log(`🌍 País: ${SEL_COUNTRY.toUpperCase()}`);
     console.log(`========================================\n`);
 
     let browser = null;
+    let page = null;
+    let context = null;
+    let activeProxy = null;
 
     try {
-        const deviceConfig = DEVICE_MAP[SEL_DEVICE];
         const launchOptions = { headless: true };
-        
-        if (proxyUrl) {
-            launchOptions.proxy = { server: proxyUrl };
-        }
-
         browser = await chromium.launch(launchOptions);
         
-        // CONFIGURAÇÃO DO DISFARCE
-        const context = await browser.newContext({
-            ...deviceConfig,
-            locale: SEL_LANG, // Define o idioma do navegador
-            // Timezone removemos como pedido, usamos o do sistema (US do GitHub) ou do Proxy se ele mascarar
-            extraHTTPHeaders: refererUrl ? { 'Referer': refererUrl } : {} // Injeta o Referer
-        });
+        const deviceConfig = DEVICE_MAP[SEL_DEVICE] || DEVICE_MAP['android'];
+        const refererUrl = REFERER_MAP[SEL_REFERER];
 
-        const page = await context.newPage();
+        // 1. Obter lista de candidatos
+        let proxies = [];
+        if (SEL_COUNTRY !== 'us') {
+            proxies = await getProxyList(SEL_COUNTRY);
+        }
 
-        console.log(`🚀 Acessando URL...`);
-        await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        // Adiciona "null" no final da lista como último recurso (conexão direta/US)
+        proxies.push(null); 
+
+        // 2. Loop de Tentativas
+        let success = false;
         
-        console.log("⏳ Aguardando redirecionamentos (8s)...");
+        for (let i = 0; i < proxies.length; i++) {
+            const currentProxy = proxies[i];
+            const attemptLabel = currentProxy ? `Proxy ${i+1}/${proxies.length - 1} (${currentProxy})` : 'CONEXÃO DIRETA (US)';
+            
+            console.log(`🔄 Tentando via: ${attemptLabel}...`);
+
+            const result = await attemptNavigation(browser, TARGET_URL, currentProxy, deviceConfig, refererUrl, SEL_LANG);
+
+            if (result.success) {
+                console.log(`✅ CONECTADO com sucesso via ${attemptLabel}!`);
+                page = result.page;
+                context = result.context;
+                activeProxy = currentProxy;
+                success = true;
+                break; // Sai do loop
+            } else {
+                console.log(`❌ Falhou: ${result.error.substring(0, 50)}...`);
+            }
+        }
+
+        if (!success) {
+            throw new Error("Todas as tentativas de conexão falharam.");
+        }
+
+        // 3. Processamento Pós-Navegação
+        console.log("⏳ Aguardando carregamento total (8s)...");
         await page.waitForTimeout(8000);
 
         const finalUrl = page.url();
@@ -107,7 +172,7 @@ async function run() {
 
         console.log("📸 Tirando Print...");
         const screenshotBuffer = await page.screenshot({ fullPage: false });
-        const fileName = `full_${Date.now()}.png`;
+        const fileName = `retry_${Date.now()}.png`;
 
         console.log("☁️ Uploading...");
         const { error } = await supabase
@@ -127,24 +192,23 @@ async function run() {
 
         const publicLink = publicUrlData.publicUrl;
 
-        console.log(`\n✅ SUCESSO!`);
+        console.log(`\n✅ SUCESSO TOTAL!`);
         console.log(`🔗 LINK: ${publicLink.replace('https://', 'https:// ')}`); 
 
-        // --- RESUMO NO GITHUB ---
+        // --- RESUMO GITHUB ---
         if (process.env.GITHUB_STEP_SUMMARY) {
             const wasRedirected = TARGET_URL.replace(/\/$/, '') !== finalUrl.replace(/\/$/, '');
             const summaryContent = `
-### 🛡️ Resultado da Análise
+### 🛡️ Resultado (Resiliente)
 
-| Parâmetro | Valor |
+| Config | Valor |
 | :--- | :--- |
-| **Origem** | ${SEL_REFERER} |
-| **Idioma** | ${SEL_LANG} |
-| **País / Proxy** | ${SEL_COUNTRY.toUpperCase()} / ${proxyUrl ? '✅' : '❌'} |
+| **Rota Usada** | \`${activeProxy || 'Direta (US)'}\` |
+| **País Alvo** | ${SEL_COUNTRY.toUpperCase()} |
 | **Redirect** | ${wasRedirected ? '🚨 SIM' : '⚪ Não'} |
 | **URL Final** | \`${finalUrl}\` |
 
-[**🔗 ABRIR IMAGEM**](${publicLink})
+[**🔗 VER IMAGEM**](${publicLink})
 
 <a href="${publicLink}" target="_blank">
   <img src="${publicLink}" width="600" style="border: 2px solid #ccc; border-radius: 8px;" />
@@ -154,9 +218,11 @@ async function run() {
         }
 
     } catch (err) {
-        console.error(`\n❌ FALHA:`, err);
+        console.error(`\n❌ FALHA FATAL:`, err.message);
         process.exit(1);
     } finally {
+        if (page) await page.close();
+        if (context) await context.close();
         if (browser) await browser.close();
     }
 }
