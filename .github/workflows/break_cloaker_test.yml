@@ -1,4 +1,4 @@
-name: 🛡️ Quebra Cloaker (Proxy Manual)
+name: 🛡️ Quebra Cloaker (Full Options)
 
 on:
   workflow_dispatch:
@@ -10,15 +10,39 @@ on:
       device:
         description: 'Dispositivo'
         required: true
-        default: 'desktop_win'
+        default: 'android'
         type: choice
         options:
-          - desktop_win
-          - desktop_mac
           - android
           - iphone
+          - desktop_win
+          - desktop_mac
+      referer:
+        description: 'Origem (Referer)'
+        required: true
+        default: 'facebook'
+        type: choice
+        options:
+          - facebook
+          - instagram
+          - google
+          - tiktok
+          - youtube
+          - direct
+      language:
+        description: 'Idioma'
+        required: true
+        default: 'pt-BR'
+        type: choice
+        options:
+          - pt-BR
+          - en-US
+          - es-ES
+          - fr-FR
+          - de-DE
+          - it-IT
       country:
-        description: 'Simular País (Proxy)'
+        description: 'País (Proxy)'
         required: true
         default: 'us'
         type: choice
@@ -31,20 +55,20 @@ on:
           - co
 
 jobs:
-  breaker-proxy:
+  breaker-full:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-      # Secrets dos Proxies (Opcional: Pode colocar hardcoded no JS se preferir)
+      # Secrets de Proxy (opcionais)
       PROXY_BR: ${{ secrets.PROXY_BR }}
-      PROXY_FR: ${{ secrets.PROXY_FR }}
-      PROXY_DE: ${{ secrets.PROXY_DE }}
-      # Inputs do usuário
+      # Inputs
       INPUT_URL: ${{ inputs.target_url }}
       INPUT_DEVICE: ${{ inputs.device }}
+      INPUT_REFERER: ${{ inputs.referer }}
+      INPUT_LANGUAGE: ${{ inputs.language }}
       INPUT_COUNTRY: ${{ inputs.country }}
 
     steps:
@@ -60,5 +84,5 @@ jobs:
       - name: Instalar Navegadores
         run: npx playwright install chromium
         
-      - name: 🛡️ EXECUTAR COM PROXY
+      - name: 🛡️ EXECUTAR
         run: node cloaker_worker.mjs
